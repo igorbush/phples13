@@ -9,39 +9,49 @@
 	}
 
 	if (!empty($_GET['id']) && !empty($_GET['action'])) {
-		$id=$_GET['id'];
+		$id= strip_tags($_GET['id']);
 		if ($_GET['action'] == "delete") {
-			$query = "DELETE FROM tasks WHERE id = $id";
-			$dbh->exec($query);
+			$query = "DELETE FROM tasks WHERE id = ?";
+			$del = $dbh->prepare($query);
+			$del->bindValue(1, $id, PDO::PARAM_INT);
+			$del->execute();
 			header("Location: index.php");
 		}
 
 		if ($_GET['action'] == "done") {
-			$query = "UPDATE tasks SET is_done = 1 WHERE id = $id";
-			$dbh->exec($query);
+			$query = "UPDATE tasks SET is_done = 1 WHERE id = ?";
+			$done = $dbh->prepare($query);
+			$done->bindValue(1, $id, PDO::PARAM_INT);
+			$done->execute();
 			header("Location: index.php");
 		}
 
 		if ($_GET['action'] == "edit") {
 			$button = 'Обновить';
-			$select = "SELECT description FROM tasks WHERE id = $id";
-			foreach ($dbh->query($select) as $rows) {$qwe = $rows['description'];}
+			$select = "SELECT description FROM tasks WHERE id = ?";
+			$edit = $dbh->prepare($select);
+			$edit->bindValue(1, $id, PDO::PARAM_INT);
+			$edit->execute();
+			foreach ($edit->FetchAll(PDO::FETCH_ASSOC) as $rows) {$str = $rows['description'];}
 		}
 	}
 
 	if (!empty($_POST['save']) and $_POST['save'] == "Добавить") {
 		$description = strip_tags($_POST['description']);
 		$insert = "INSERT INTO tasks (description, date_added) VALUES (?, now())";
-		$st = $dbh->prepare($insert);
-		$st->execute([$description]);
+		$add = $dbh->prepare($insert);
+		$add->bindValue(1, $description, PDO::PARAM_STR);
+		$add->execute();
 	} 
 	elseif (!empty($_POST['id']) and !empty($_POST['action']) && $_POST['action'] == 'edit') {
 		$button = 'Обновить';
 		$id = strip_tags($_POST['id']);
 		$description = strip_tags($_POST['description']);
 		$insert = "UPDATE tasks SET description = ? WHERE id = ?";
-		$st = $dbh->prepare($insert);
-		$st->execute([$description, $id]);
+		$update = $dbh->prepare($insert);
+		$update->bindValue(1, $description, PDO::PARAM_STR);
+		$update->bindValue(2, $id, PDO::PARAM_INT);
+		$update->execute();
 		header("Location: index.php");
 	}
 
@@ -59,9 +69,9 @@
 			<div class="col">
 				<form action="index.php" method="POST">
 					<div class="input-group">
-						<input type="hidden" name="id" value="<?= $_GET['id']; ?>">
-						<input type="hidden" name="action" value="<?= $_GET['action']; ?>">
-						<input type="text" name="description" placeholder="описание задачи" value="<?= $_GET ? $qwe : " " ?>" class="form-control">
+						<input type="hidden" name="id" value="<?= strip_tags($_GET['id']); ?>">
+						<input type="hidden" name="action" value="<?= strip_tags($_GET['action']); ?>">
+						<input type="text" name="description" placeholder="описание задачи" value="<?= $_GET ? $str : " " ?>" class="form-control">
 						<div class="input-group-append">
 							<input type="submit" name="save" value="<?= $button; ?>" class="btn btn-info">
 						</div>
